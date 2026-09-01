@@ -179,8 +179,8 @@
       <li><span class="tick">✓</span> Spot the speed and UX issues quietly costing you conversions</li>
     </ul>
     <form class="gate-form" id="gateForm">
-      <input type="text" id="gateName" placeholder="Your name" required>
-      <input type="email" id="gateEmail" placeholder="Your email" required>
+      <input type="text" id="gateName" name="name" placeholder="Your name" required>
+      <input type="email" id="gateEmail" name="email" placeholder="Your email" required>
       <div class="gate-error" id="gateError">Please enter a valid name and email.</div>
       <button type="submit" class="gate-submit" id="gateSubmit">Get My Free Score</button>
     </form>
@@ -291,11 +291,14 @@
 
     try{
       if(!FORMSPREE_ENDPOINT.includes('YOUR_FORM_ID')){
-        await fetch(FORMSPREE_ENDPOINT, {
+        const res = await fetch(FORMSPREE_ENDPOINT, {
           method: 'POST',
           headers: {'Accept': 'application/json'},
           body: new FormData(gateForm)
         });
+        if(!res.ok){
+          console.error('Formspree responded with an error:', res.status, await res.text());
+        }
       }
     }catch(err){
       console.error('Lead capture failed to send, continuing anyway:', err);
