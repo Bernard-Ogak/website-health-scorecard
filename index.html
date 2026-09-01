@@ -97,6 +97,59 @@
   .see-results{background:var(--teal); color:#FFFFFF; border:none; font-family:'Poppins', sans-serif; font-weight:700; font-size:15px; padding:15px 34px; border-radius:99px; cursor:pointer; opacity:0.35; pointer-events:none; transition:opacity .2s ease; box-shadow:0 8px 24px rgba(45,212,232,0.25);}
   .see-results.active{opacity:1; pointer-events:auto;}
 
+  /* email gate */
+  .gate{max-width:460px; margin:40px auto 0;}
+  .gate .intro{margin-bottom:28px;}
+  .gate-benefits{
+    list-style:none;
+    margin-bottom:28px;
+  }
+  .gate-benefits li{
+    display:flex; align-items:flex-start; gap:10px;
+    font-size:14px; color:var(--white);
+    margin-bottom:12px;
+    line-height:1.5;
+  }
+  .gate-benefits li .tick{
+    color:var(--teal); font-weight:700; flex-shrink:0; margin-top:1px;
+  }
+  .gate-form input{
+    width:100%;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:12px;
+    padding:14px 16px;
+    color:var(--white);
+    font-family:'Poppins', sans-serif;
+    font-size:14px;
+    margin-bottom:12px;
+    outline:none;
+    transition:border-color .2s ease;
+  }
+  .gate-form input:focus{border-color:var(--teal);}
+  .gate-form input::placeholder{color:var(--muted);}
+  .gate-submit{
+    width:100%;
+    background:var(--teal);
+    color:#FFFFFF;
+    border:none;
+    font-family:'Poppins', sans-serif;
+    font-weight:700;
+    font-size:15px;
+    padding:15px 0;
+    border-radius:99px;
+    cursor:pointer;
+    box-shadow:0 8px 24px rgba(45,212,232,0.25);
+    margin-top:6px;
+  }
+  .gate-submit:disabled{opacity:0.5; cursor:not-allowed;}
+  .gate-note{
+    text-align:center; font-size:11.5px; color:var(--muted); margin-top:14px; line-height:1.5;
+  }
+  .gate-error{
+    color:var(--danger); font-size:12.5px; margin-top:-4px; margin-bottom:10px; display:none;
+  }
+
   @media (max-width:480px){
     .intro h1{font-size:27px;}
     .score-circle{width:140px; height:140px;}
@@ -115,7 +168,26 @@
     <span class="no-shortcuts">NO SHORTCUTS</span>
   </div>
 
-  <div id="quizView">
+  <div id="gateView" class="gate">
+    <div class="intro">
+      <h1>Website Health <span>Scorecard</span></h1>
+      <p>Find out in 10 minutes exactly what's holding your website back — and what to fix first.</p>
+    </div>
+    <ul class="gate-benefits">
+      <li><span class="tick">✓</span> See if Google can actually find and trust your site</li>
+      <li><span class="tick">✓</span> Find out if you're tracking the data that actually matters</li>
+      <li><span class="tick">✓</span> Spot the speed and UX issues quietly costing you conversions</li>
+    </ul>
+    <form class="gate-form" id="gateForm">
+      <input type="text" id="gateName" placeholder="Your name" required>
+      <input type="email" id="gateEmail" placeholder="Your email" required>
+      <div class="gate-error" id="gateError">Please enter a valid name and email.</div>
+      <button type="submit" class="gate-submit" id="gateSubmit">Get My Free Score</button>
+    </form>
+    <p class="gate-note">No spam — just your results and occasional tips on SEO, analytics & web performance.</p>
+  </div>
+
+  <div id="quizView" style="display:none;">
     <div class="intro">
       <h1>Website Health <span>Scorecard</span></h1>
       <p>15 quick yes/no checks across SEO, analytics, and site performance. Answer honestly — takes about 10 minutes.</p>
@@ -194,6 +266,59 @@
 </div>
 
 <script>
+  // ===== EMAIL GATE =====
+  // Sign up free at https://formspree.io, create a form, and replace
+  // YOUR_FORM_ID below with the ID they give you (looks like "abcdwxyz").
+  const FORMSPREE_ENDPOINT = "https://formspree.io/f/mvkokepw";
+
+  const gateForm = document.getElementById('gateForm');
+  const gateError = document.getElementById('gateError');
+  const gateSubmit = document.getElementById('gateSubmit');
+
+  gateForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('gateName').value.trim();
+    const email = document.getElementById('gateEmail').value.trim();
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    if(!name || !emailValid){
+      gateError.style.display = 'block';
+      return;
+    }
+    gateError.style.display = 'none';
+    gateSubmit.disabled = true;
+    gateSubmit.textContent = 'One moment...';
+
+    try{
+      if(!FORMSPREE_ENDPOINT.includes('YOUR_FORM_ID')){
+        await fetch(FORMSPREE_ENDPOINT, {
+          method: 'POST',
+          headers: {'Accept': 'application/json'},
+          body: new FormData(gateForm)
+        });
+      }
+    }catch(err){
+      console.error('Lead capture failed to send, continuing anyway:', err);
+    }
+
+    try{
+      localStorage.setItem('scorecard_lead', JSON.stringify({name, email}));
+    }catch(err){}
+
+    document.getElementById('gateView').style.display = 'none';
+    document.getElementById('quizView').style.display = 'block';
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+
+  // Skip the gate automatically if this visitor already unlocked it before
+  try{
+    if(localStorage.getItem('scorecard_lead')){
+      document.getElementById('gateView').style.display = 'none';
+      document.getElementById('quizView').style.display = 'block';
+    }
+  }catch(err){}
+
+  // ===== QUIZ LOGIC =====
   const items = document.querySelectorAll('.item');
   const total = items.length;
   const answers = {};
